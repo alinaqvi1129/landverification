@@ -8,6 +8,7 @@ Falls back to static official summaries if MISTRAL_API_KEY is not configured.
 """
 
 import os
+import streamlit as st
 
 try:
     from dotenv import load_dotenv
@@ -125,7 +126,7 @@ def _call_mistral(user_message: str, context: str = "") -> str:
 
     api_key = os.getenv("MISTRAL_API_KEY", "")
     if not api_key:
-        raise ValueError("MISTRAL_API_KEY not configured")
+        api_key = st.secrets.get("MISTRAL_API_KEY")
 
     client = Mistral(api_key=api_key)
 
