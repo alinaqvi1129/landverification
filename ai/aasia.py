@@ -132,27 +132,36 @@ _STATIC_GUIDES = {
 
 
 def _call_mistral(user_message: str, context: str = "") -> str:
-    """Call Mistral AI with the official AASIA government prompt."""
-    from mistralai import Mistral
+    """Call Mistral AI REST API directly (no SDK dependency)."""
+    import requests
 
     api_key = _get_api_key()
     if not api_key:
         raise ValueError("MISTRAL_API_KEY is not configured.")
 
-    client = Mistral(api_key=api_key)
-
     system = _SYSTEM_PROMPT
     if context:
         system += f"\n\nPortal Context: {context}"
 
-    response = client.chat.complete(
-        model="mistral-small-latest",
-        messages=[
+    payload = {
+        "model": "mistral-small-latest",
+        "messages": [
             {"role": "system", "content": system},
             {"role": "user",   "content": user_message},
         ],
+    }
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    resp = requests.post(
+        "https://api.mistral.ai/v1/chat/completions",
+        json=payload,
+        headers=headers,
+        timeout=30,
     )
-    return response.choices[0].message.content.strip()
+    resp.raise_for_status()
+    return resp.json()["choices"][0]["message"]["content"].strip()
 
 
 def summarize_page(page_name: str, user_question: str = "") -> str:

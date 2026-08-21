@@ -53,11 +53,9 @@ def generate_ai_report(plot_no, fertility_info, water_info, image_path=None):
     if not api_key or image_path is None:
         return mock
 
-    # Real Mistral Pixtral Vision call
+    # Real Mistral Pixtral Vision call (via REST — no SDK needed)
     try:
-        from mistralai import Mistral
-
-        client = Mistral(api_key=api_key)
+        import requests
 
         # Read and base64-encode the image
         with open(image_path, "rb") as f:
@@ -84,9 +82,9 @@ Reply ONLY in pure JSON (no markdown, no code fences) with exactly these keys:
   "summary": "..."
 }"""
 
-        response = client.chat.complete(
-            model="pixtral-12b-latest",
-            messages=[
+        payload = {
+            "model": "pixtral-12b-latest",
+            "messages": [
                 {
                     "role": "user",
                     "content": [
@@ -98,9 +96,19 @@ Reply ONLY in pure JSON (no markdown, no code fences) with exactly these keys:
                     ],
                 }
             ],
+        }
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+        resp = requests.post(
+            "https://api.mistral.ai/v1/chat/completions",
+            json=payload,
+            headers=headers,
+            timeout=60,
         )
-
-        raw_text = response.choices[0].message.content.strip()
+        resp.raise_for_status()
+        raw_text = resp.json()["choices"][0]["message"]["content"].strip()
 
         # Strip markdown code fences if model wraps in ```json ... ```
         if raw_text.startswith("```"):
@@ -113,8 +121,7 @@ Reply ONLY in pure JSON (no markdown, no code fences) with exactly these keys:
         return parsed
 
     except json.JSONDecodeError:
-        raw = response.choices[0].message.content if "response" in dir() else "No response"
-        mock["mistral_raw"] = raw
+        mock["mistral_raw"] = raw_text if "raw_text" in dir() else "No response"
         mock["error"] = "Pixtral response was not valid JSON — raw text saved above."
         return mock
     except Exception as e:
