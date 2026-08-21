@@ -83,3 +83,4 @@ watchdog==6.0.0
 WebOb==1.8.11
 websockets==16.1.1
 xyzservices==2026.3.0
+mistralai
