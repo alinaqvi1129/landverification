@@ -16,6 +16,17 @@ try:
 except Exception:
     pass
 
+
+def _get_api_key() -> str:
+    """Return MISTRAL_API_KEY from environment variables or Streamlit secrets."""
+    key = os.getenv("MISTRAL_API_KEY", "")
+    if not key:
+        try:
+            key = st.secrets.get("MISTRAL_API_KEY", "")
+        except Exception:
+            pass
+    return key or ""
+
 # ── Official Government System Prompt ───────────────────────────────────────
 _SYSTEM_PROMPT = """You are AASIA (Automated Assistance for Spatial & Integrity Analysis), 
 the official AI-powered information assistant of BhuDrishti — a Digital India initiative 
@@ -124,9 +135,9 @@ def _call_mistral(user_message: str, context: str = "") -> str:
     """Call Mistral AI with the official AASIA government prompt."""
     from mistralai import Mistral
 
-    api_key = os.getenv("MISTRAL_API_KEY", "")
+    api_key = _get_api_key()
     if not api_key:
-        api_key = st.secrets.get("MISTRAL_API_KEY")
+        raise ValueError("MISTRAL_API_KEY is not configured.")
 
     client = Mistral(api_key=api_key)
 
@@ -155,7 +166,7 @@ def summarize_page(page_name: str, user_question: str = "") -> str:
         "For further assistance, select your designated role-specific desk."
     )
 
-    if not os.getenv("MISTRAL_API_KEY", ""):
+    if not _get_api_key():
         return static
 
     try:
@@ -178,11 +189,11 @@ def ask_aasia(question: str, page_context: str = "") -> str:
     Process a citizen or officer query through the AASIA Mistral AI assistant.
     Falls back to a formal offline message if MISTRAL_API_KEY is not set.
     """
-    if not os.getenv("MISTRAL_API_KEY", ""):
+    if not _get_api_key():
         return (
             "AASIA Information System is currently operating in offline mode. "
             "AI-assisted responses are unavailable. "
-            "Please configure MISTRAL_API_KEY to enable the full AI assistant. "
+            "Please configure MISTRAL_API_KEY in Streamlit Secrets to enable the full AI assistant. "
             "For immediate assistance, refer to the relevant desk module or "
             "contact your Tehsil office."
         )
@@ -242,7 +253,7 @@ def summarize_result(kind: str, data: dict | None = None) -> str:
             "For official record purposes, retain the hash and timestamp shown."
         )
 
-    if not os.getenv("MISTRAL_API_KEY", ""):
+    if not _get_api_key():
         return static
 
     try:

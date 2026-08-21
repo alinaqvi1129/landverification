@@ -9,13 +9,25 @@ except Exception:
     pass
 
 
+def _get_api_key() -> str:
+    """Return MISTRAL_API_KEY from environment variables or Streamlit secrets."""
+    key = os.getenv("MISTRAL_API_KEY", "")
+    if not key:
+        try:
+            import streamlit as st
+            key = st.secrets.get("MISTRAL_API_KEY", "")
+        except Exception:
+            pass
+    return key or ""
+
+
 def generate_ai_report(plot_no, fertility_info, water_info, image_path=None):
     """
     Generate an AI property report using Mistral AI (Pixtral for vision).
     If MISTRAL_API_KEY is set and image_path is provided, calls Pixtral vision.
     Otherwise returns a safe mock report (demo fallback).
     """
-    api_key = os.getenv("MISTRAL_API_KEY", "")
+    api_key = _get_api_key()
 
     # Mock report — always works as a safe fallback (demo / SIH mode)
     fert_level = fertility_info.get("level", "Medium") if isinstance(fertility_info, dict) else "Medium"
